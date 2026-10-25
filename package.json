@@ -1,6 +1,6 @@
 {
   "name": "video2mp4",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Interactive CLI that converts YouTube and TikTok videos to edit-ready MP4 (H.264 + AAC), with bundled yt-dlp and ffmpeg.",
   "bin": {
     "video2mp4": "bin/video2mp4.js"

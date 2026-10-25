@@ -16,6 +16,8 @@ setup.cmd
 
 (Or just double-click `setup.cmd` in Explorer.)
 
+**Downloaded the ZIP instead?** Extract it first (right-click ? *Extract All*), then double-click `setup.cmd` in the extracted folder. If Windows shows a security prompt for a downloaded file, choose *Run* / *More info ? Run anyway*.
+
 ### macOS / Linux
 
 ```bash
@@ -36,11 +38,14 @@ The setup script:
 
 1. Installs Node.js LTS if Node.js 20+ is missing (via `winget` on Windows, Homebrew or nvm on macOS/Linux).
 2. Downloads the standalone yt-dlp binary (SHA-256 verified) and a static FFmpeg + FFprobe build for your OS/CPU (Windows x64/ARM64/x86, macOS Intel/Apple Silicon, Linux x64/ARM64) into `vendor/`.
-3. Registers the global `video2mp4` command and adds npm's global bin folder to your PATH if needed.
+3. Copies the app to a permanent per-user location ? `%LOCALAPPDATA%\video2mp4` on Windows, `~/.local/share/video2mp4` on macOS/Linux ? and registers the global `video2mp4` command from there.
+4. Adds npm's global bin folder to your PATH if needed.
+
+An internet connection is needed during setup (Node.js, yt-dlp and FFmpeg are downloaded for your exact OS/CPU). After setup finishes, **the cloned or extracted folder can be deleted** ? the command keeps working.
 
 Open a **new** terminal afterwards (cmd, PowerShell, Windows Terminal, Git Bash, bash, zsh...) and `video2mp4` is available everywhere.
 
-> Git cannot run scripts automatically on `git clone` (a security restriction), so running the setup script once after cloning is the only manual step.
+> Git cannot run scripts automatically on `git clone` (a security restriction), so running the setup script once after cloning or extracting is the only manual step.
 
 ## Usage
 
@@ -139,12 +144,21 @@ video2mp4 --help       Show help
 
 ## Updating / uninstalling
 
+Update the yt-dlp engine only (fixes most "site changed" errors):
+
 ```bash
-git pull && video2mp4 --update     # update the tool and the yt-dlp engine
-npm uninstall -g video2mp4         # remove the global command
+video2mp4 --update
 ```
 
-The global command links to the cloned folder, so keep the folder where it is (or re-run setup after moving it).
+Update the tool itself: `git pull` (or download a fresh ZIP and extract it), then run `setup.cmd` / `./setup.sh` again. Setup overwrites the installed copy and keeps already downloaded binaries.
+
+Uninstall:
+
+```bash
+npm uninstall -g video2mp4
+```
+
+then delete the install folder: `%LOCALAPPDATA%\video2mp4` (Windows) or `~/.local/share/video2mp4` (macOS/Linux).
 
 ## Notes
 

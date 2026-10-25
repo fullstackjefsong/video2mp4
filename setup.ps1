@@ -1,11 +1,16 @@
-# One-step installer for video2mp4 on Windows.
-# Installs Node.js (if missing), downloads yt-dlp + ffmpeg, registers the
-# global "video2mp4" command and makes sure it is on the user PATH.
+# One-step installer (Windows).
+# Copies the app to %LOCALAPPDATA%\<app>, installs Node.js if missing, downloads
+# yt-dlp + ffmpeg, registers the global command and makes sure it is on the user PATH.
+# The downloaded ZIP / cloned folder can be deleted afterwards.
 
 $ErrorActionPreference = 'Stop'
-Set-Location -LiteralPath $PSScriptRoot
+$SourceDir = $PSScriptRoot
+$App = (Get-Content -LiteralPath (Join-Path $SourceDir 'package.json') -Raw | ConvertFrom-Json).name
+$InstallDir = Join-Path $env:LOCALAPPDATA $App
+$AppItems = 'bin', 'lib', 'scripts', 'package.json', 'package-lock.json', 'README.md', 'setup.cmd', 'setup.ps1', 'setup.sh'
 
 function Write-Step($msg) { Write-Host "==> $msg" -ForegroundColor Cyan }
+function Fail($msg) { Write-Host $msg -ForegroundColor Red; exit 1 }
 
 function Update-SessionPath {
     $machine = [Environment]::GetEnvironmentVariable('Path', 'Machine')
@@ -27,23 +32,39 @@ if ((Get-NodeMajor) -lt 20) {
         Update-SessionPath
     }
     if ((Get-NodeMajor) -lt 20) {
-        Write-Host 'Could not install Node.js automatically. Please install Node.js 20+ from https://nodejs.org and re-run setup.' -ForegroundColor Red
-        exit 1
+        Fail 'Could not install Node.js automatically. Please install Node.js 20+ from https://nodejs.org and re-run setup.'
     }
 }
 Write-Step "Using Node.js $(& node -v)"
 
-# 2. Dependencies (yt-dlp + ffmpeg are downloaded by the postinstall script)
+# 2. Copy the app to its permanent location (keeps already-downloaded binaries in vendor\)
+$src = [IO.Path]::GetFullPath($SourceDir).TrimEnd('\')
+$dst = [IO.Path]::GetFullPath($InstallDir).TrimEnd('\')
+if ($src -ne $dst) {
+    Write-Step "Installing $App to $InstallDir ..."
+    New-Item -ItemType Directory -Force -Path $InstallDir | Out-Null
+    foreach ($item in $AppItems) {
+        $from = Join-Path $SourceDir $item
+        $to = Join-Path $InstallDir $item
+        if (Test-Path -LiteralPath $to) { Remove-Item -LiteralPath $to -Recurse -Force }
+        if (Test-Path -LiteralPath $from) { Copy-Item -LiteralPath $from -Destination $to -Recurse -Force }
+    }
+    # Files from a downloaded ZIP carry the "from the internet" mark; clear it on the installed copy.
+    Get-ChildItem -LiteralPath $InstallDir -Recurse -File | Unblock-File -ErrorAction SilentlyContinue
+}
+Set-Location -LiteralPath $InstallDir
+
+# 3. Dependencies (yt-dlp + ffmpeg are downloaded by the postinstall script)
 Write-Step 'Installing dependencies (yt-dlp, ffmpeg)...'
 & npm install --no-fund --no-audit --foreground-scripts
-if ($LASTEXITCODE -ne 0) { Write-Host 'npm install failed.' -ForegroundColor Red; exit 1 }
+if ($LASTEXITCODE -ne 0) { Fail 'npm install failed.' }
 
-# 3. Register the global command (links this folder, so "git pull" updates it)
-Write-Step 'Registering the global "video2mp4" command...'
+# 4. Register the global command (points at the installed copy)
+Write-Step "Registering the global `"$App`" command..."
 & npm install -g . --no-fund --no-audit --ignore-scripts
-if ($LASTEXITCODE -ne 0) { Write-Host 'Global install failed.' -ForegroundColor Red; exit 1 }
+if ($LASTEXITCODE -ne 0) { Fail 'Global install failed.' }
 
-# 4. Ensure npm's global bin folder is on the user PATH
+# 5. Ensure npm's global bin folder is on the user PATH
 $npmBin = (& npm prefix -g).Trim()
 $userPath = [Environment]::GetEnvironmentVariable('Path', 'User')
 $allPaths = "$([Environment]::GetEnvironmentVariable('Path', 'Machine'));$userPath" -split ';' | ForEach-Object { $_.Trim().TrimEnd('\') }
@@ -54,9 +75,10 @@ if ($allPaths -notcontains $npmBin.TrimEnd('\')) {
     Update-SessionPath
 }
 
-# 5. Verify
-$ver = & video2mp4 --version
-if ($LASTEXITCODE -ne 0) { Write-Host 'video2mp4 could not be started.' -ForegroundColor Red; exit 1 }
+# 6. Verify
+$ver = & $App --version
+if ($LASTEXITCODE -ne 0) { Fail "$App could not be started." }
 Write-Host ''
-Write-Host "video2mp4 v$ver is installed." -ForegroundColor Green
-Write-Host 'Open a NEW terminal window (cmd, PowerShell, Windows Terminal, Git Bash) and run:  video2mp4'
+Write-Host "$App v$ver is installed in $InstallDir" -ForegroundColor Green
+if ($src -ne $dst) { Write-Host "You can delete $SourceDir now - it is no longer needed." }
+Write-Host "Open a NEW terminal window (cmd, PowerShell, Windows Terminal, Git Bash) and run:  $App"
