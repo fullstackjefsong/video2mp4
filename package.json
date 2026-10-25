@@ -1,0 +1,38 @@
+{
+  "name": "video2mp4",
+  "version": "1.0.0",
+  "description": "Interactive CLI that converts YouTube and TikTok videos to edit-ready MP4 (H.264 + AAC), with bundled yt-dlp and ffmpeg.",
+  "bin": {
+    "video2mp4": "bin/video2mp4.js"
+  },
+  "main": "lib/converter.js",
+  "files": [
+    "bin",
+    "lib",
+    "scripts"
+  ],
+  "scripts": {
+    "postinstall": "node scripts/postinstall.js",
+    "start": "node bin/video2mp4.js",
+    "test": "node --test"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/fullstackjefsong/video2mp4.git"
+  },
+  "keywords": [
+    "youtube",
+    "tiktok",
+    "mp4",
+    "h264",
+    "aac",
+    "cli",
+    "converter",
+    "yt-dlp",
+    "ffmpeg"
+  ],
+  "license": "MIT"
+}

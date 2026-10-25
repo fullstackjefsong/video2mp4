@@ -1,0 +1,6 @@
+node_modules/
+vendor/
+*.part
+*.mp4
+*.mkv
+*.webm
