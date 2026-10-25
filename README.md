@@ -16,7 +16,26 @@ setup.cmd
 
 (Or just double-click `setup.cmd` in Explorer.)
 
-**Downloaded the ZIP instead?** Extract it first (right-click ? *Extract All*), then double-click `setup.cmd` in the extracted folder. If Windows shows a security prompt for a downloaded file, choose *Run* / *More info ? Run anyway*.
+**Downloaded the ZIP instead?** Extract it first (right-click, *Extract All*), then double-click `setup.cmd` in the extracted folder. Only approve Windows security prompts if you trust the downloaded source.
+
+On Windows, setup installs a private Node.js runtime and command launchers under `%LOCALAPPDATA%\video2mp4`. It does not need administrator rights, winget, npm's global prefix, or permission to run npm PowerShell scripts.
+
+If you run setup from **Command Prompt**, `video2mp4` is available in that same prompt immediately. For PowerShell, Windows Terminal, VS Code or Git Bash that were already open, **fully close and reopen the host application**, not just its terminal tab. Windows cannot change the environment of an already-running parent process.
+
+To activate without restarting an existing PowerShell session:
+
+```powershell
+$env:Path = "$env:LOCALAPPDATA\video2mp4\command;$env:Path"
+video2mp4 --version
+```
+
+In an existing Git Bash session:
+
+```bash
+export PATH="$(cygpath -u "$LOCALAPPDATA")/video2mp4/command:$PATH"
+hash -r
+video2mp4 --version
+```
 
 ### macOS / Linux
 
@@ -36,14 +55,14 @@ If your npm version skips install scripts, yt-dlp and FFmpeg are downloaded auto
 
 The setup script:
 
-1. Installs Node.js LTS if Node.js 20+ is missing (via `winget` on Windows, Homebrew or nvm on macOS/Linux).
+1. On Windows, copies an available Node.js 20+ executable into the private runtime, or downloads Node.js LTS from nodejs.org and verifies its SHA-256 checksum. On macOS/Linux, uses Homebrew or nvm if Node.js 20+ is missing.
 2. Downloads the standalone yt-dlp binary (SHA-256 verified) and a static FFmpeg + FFprobe build for your OS/CPU (Windows x64/ARM64/x86, macOS Intel/Apple Silicon, Linux x64/ARM64) into `vendor/`.
-3. Copies the app to a permanent per-user location ? `%LOCALAPPDATA%\video2mp4` on Windows, `~/.local/share/video2mp4` on macOS/Linux ? and registers the global `video2mp4` command from there.
-4. Adds npm's global bin folder to your PATH if needed.
+3. Copies the app to a permanent per-user location: `%LOCALAPPDATA%\video2mp4` on Windows, `${XDG_DATA_HOME:-~/.local/share}/video2mp4` on macOS/Linux.
+4. On Windows, persists `%LOCALAPPDATA%\video2mp4\command` on the user PATH, notifies Windows of the environment change, and verifies command discovery in fresh cmd and PowerShell child processes. On macOS/Linux, persists Node and npm's global bin folder in bash/zsh startup files.
 
-An internet connection is needed during setup (Node.js, yt-dlp and FFmpeg are downloaded for your exact OS/CPU). After setup finishes, **the cloned or extracted folder can be deleted** ? the command keeps working.
+An internet connection is needed during setup (Node.js, yt-dlp and FFmpeg are downloaded for your exact OS/CPU). Setup fails if required dependencies cannot be downloaded or executed; it does not report a successful installation with missing tools. After successful setup, **the cloned or extracted folder can be deleted**.
 
-Open a **new** terminal afterwards (cmd, PowerShell, Windows Terminal, Git Bash, bash, zsh...) and `video2mp4` is available everywhere.
+Launch a fresh terminal application afterwards and `video2mp4` is available for the Windows user who ran setup. Other Windows accounts must run setup separately.
 
 > Git cannot run scripts automatically on `git clone` (a security restriction), so running the setup script once after cloning or extracting is the only manual step.
 
@@ -152,13 +171,15 @@ video2mp4 --update
 
 Update the tool itself: `git pull` (or download a fresh ZIP and extract it), then run `setup.cmd` / `./setup.sh` again. Setup overwrites the installed copy and keeps already downloaded binaries.
 
-Uninstall:
+Uninstall on Windows after using `setup.cmd`: remove `%LOCALAPPDATA%\video2mp4\command` from your **user** Path in Windows Environment Variables, then delete `%LOCALAPPDATA%\video2mp4`. Restart terminal applications afterwards. If you previously installed through npm, also run `npm.cmd uninstall -g video2mp4` to remove its old shims.
+
+Uninstall on macOS/Linux (or for an npm-only install):
 
 ```bash
 npm uninstall -g video2mp4
 ```
 
-then delete the install folder: `%LOCALAPPDATA%\video2mp4` (Windows) or `~/.local/share/video2mp4` (macOS/Linux).
+Then delete the install folder (`${XDG_DATA_HOME:-~/.local/share}/video2mp4` on macOS/Linux).
 
 ## Notes
 

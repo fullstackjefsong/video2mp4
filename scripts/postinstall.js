@@ -19,6 +19,12 @@ const log = (m) => console.log(`[video2mp4] ${m}`);
     ok = false;
     console.warn(`[video2mp4] Warning: could not download ffmpeg (${err.message}).`);
   }
-  // Don't fail the npm install: missing pieces are fetched again on first run.
-  if (!ok) console.warn('[video2mp4] Missing components will be downloaded automatically the first time you run video2mp4.');
+  if (!ok) {
+    if (process.argv.includes('--strict')) {
+      console.error('[video2mp4] Setup failed: required dependencies are missing.');
+      process.exitCode = 1;
+    } else {
+      console.warn('[video2mp4] Missing components will be downloaded automatically the first time you run video2mp4.');
+    }
+  }
 })();

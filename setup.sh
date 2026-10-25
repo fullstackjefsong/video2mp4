@@ -19,14 +19,13 @@ node_major() {
 
 add_to_path() {
   local dir="$1" line="export PATH=\"$1:\$PATH\""
-  case ":$PATH:" in *":$dir:"*) return ;; esac
-  for rc in "$HOME/.bashrc" "$HOME/.zshrc" "$HOME/.profile"; do
-    if [ -f "$rc" ] || [ "$(basename "$rc")" = ".profile" ]; then
+  for rc in "$HOME/.bashrc" "$HOME/.zshrc" "$HOME/.zprofile" "$HOME/.profile" "$HOME/.bash_profile" "$HOME/.bash_login"; do
+    if [ -f "$rc" ] || { [ "$rc" != "$HOME/.bash_profile" ] && [ "$rc" != "$HOME/.bash_login" ]; }; then
       grep -qsF "$line" "$rc" || printf '\n# Added by %s setup\n%s\n' "$APP" "$line" >> "$rc"
     fi
   done
-  export PATH="$dir:$PATH"
-  step "Added $dir to PATH (in ~/.bashrc, ~/.zshrc, ~/.profile)"
+  case ":$PATH:" in *":$dir:"*) ;; *) export PATH="$dir:$PATH" ;; esac
+  step "Persisted $dir in shell startup files"
 }
 
 [ -n "$APP" ] || fail 'Could not read the app name from package.json.'
@@ -65,11 +64,12 @@ cd "$INSTALL_DIR"
 
 # 3. Dependencies (yt-dlp + ffmpeg are downloaded by the postinstall script)
 step 'Installing dependencies (yt-dlp, ffmpeg)...'
-npm install --no-fund --no-audit --foreground-scripts
+npm install --no-fund --no-audit --ignore-scripts
+node scripts/postinstall.js --strict
 
 # 4. Register the global command (points at the installed copy)
 step "Registering the global \"$APP\" command..."
-if ! npm install -g . --no-fund --no-audit --ignore-scripts 2>/dev/null; then
+if ! npm install -g . --no-fund --no-audit --ignore-scripts; then
   step 'No permission for the global npm folder - using ~/.npm-global instead'
   mkdir -p "$HOME/.npm-global"
   npm config set prefix "$HOME/.npm-global"
@@ -77,6 +77,7 @@ if ! npm install -g . --no-fund --no-audit --ignore-scripts 2>/dev/null; then
 fi
 
 # 5. Ensure npm's global bin folder is on PATH
+add_to_path "$(dirname "$(command -v node)")"
 add_to_path "$(npm prefix -g)/bin"
 
 # 6. Verify
